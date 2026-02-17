@@ -1,0 +1,49 @@
+installation:
+  version: 6.0.0-Beta.8
+  installDate: 2026-02-16T15:13:56.860Z
+  lastUpdated: 2026-02-16T15:13:56.860Z
+modules:
+  - name: core
+    version: 6.0.0-Beta.8
+    installDate: 2026-02-16T15:13:54.328Z
+    lastUpdated: 2026-02-16T15:13:54.328Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmb
+    version: 0.1.6
+    installDate: 2026-02-16T15:13:42.712Z
+    lastUpdated: 2026-02-16T15:13:54.990Z
+    source: external
+    npmPackage: bmad-builder
+    repoUrl: https://github.com/bmad-code-org/bmad-builder
+  - name: gds
+    version: 0.1.7
+    installDate: 2026-02-16T15:13:46.955Z
+    lastUpdated: 2026-02-16T15:13:55.608Z
+    source: external
+    npmPackage: bmad-game-dev-studio
+    repoUrl: https://github.com/bmad-code-org/bmad-module-game-dev-studio.git
+  - name: tea
+    version: 1.1.0
+    installDate: 2026-02-16T15:13:49.802Z
+    lastUpdated: 2026-02-16T15:13:56.231Z
+    source: external
+    npmPackage: bmad-method-test-architecture-enterprise
+    repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
+  - name: cis
+    version: 0.1.6
+    installDate: 2026-02-16T15:13:53.507Z
+    lastUpdated: 2026-02-16T15:13:56.860Z
+    source: external
+    npmPackage: bmad-creative-intelligence-suite
+    repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite
+  - name: bmm
+    version: 6.0.0-Beta.8
+    installDate: 2026-02-16T15:13:54.123Z
+    lastUpdated: 2026-02-16T15:13:56.860Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+ides:
+  - windsurf

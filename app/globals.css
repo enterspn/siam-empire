@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-gold: #d4af37;
+  --color-crimson: #800000;
+  --color-parchment: #fdf5e6;
+  --color-ink: #2e2016;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  @apply text-ink antialiased;
+  background: linear-gradient(160deg, #fdf5e6 0%, #f9ecd0 100%);
+}
+@media (min-width: 1px) {
+  body {
+    background: radial-gradient(circle at 20% 20%, rgba(212,175,55,0.12), transparent 36%), radial-gradient(circle at 80% 10%, rgba(128,0,0,0.08), transparent 28%), linear-gradient(160deg, #fdf5e6 0%, #f9ecd0 100%);
+  }
+}
+
+/* Next.js Dev Overlay portal – ซ่อนไม่ให้โผล่เป็นกล่องว่าง (ดู error ได้ที่ F12 > Console) */
+nextjs-portal {
+  display: none !important;
+}
+
+@layer components {
+  .siam-shell {
+    @apply mx-auto w-full max-w-md px-4 pb-8 pt-5;
+  }
+
+  .siam-card {
+    @apply rounded-2xl border border-gold/35 bg-parchment/90 p-4 shadow-temple;
+  }
+
+  .siam-title {
+    @apply text-xl font-bold tracking-wide text-crimson;
+  }
+
+  .siam-button {
+    @apply rounded-xl bg-crimson px-4 py-2 font-semibold text-parchment transition hover:bg-crimson/90;
+  }
+}
