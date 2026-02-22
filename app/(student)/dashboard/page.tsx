@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RoyalDecreeBanner } from "@/components/royal-decree-banner";
 
 type Resource = { key: string; label: string; icon: string; amount: number; war_effect?: string | null; war_multiplier?: number };
 type Settings = { current_phase: string; is_trade_active: boolean; is_war_active: boolean };
@@ -61,6 +62,8 @@ export default function DashboardPage() {
 
   return (
     <section className="space-y-3">
+      <RoyalDecreeBanner cityResources={resources.map((r) => ({ key: r.key, amount: r.amount }))} />
+
       <header className="siam-card">
         <h1 className="siam-title">หน้าหลักเมือง</h1>
         <div className="mt-2 flex flex-wrap gap-3 text-xs">

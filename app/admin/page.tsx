@@ -63,6 +63,17 @@ type ResourceType = {
   war_multiplier: number;
 };
 
+type GlobalMission = {
+  id: string;
+  title: string;
+  description: string;
+  target_resource_type: string;
+  target_amount: number;
+  current_amount: number;
+  is_active: boolean;
+  created_at: string;
+};
+
 type Law = {
   id: string;
   title: string;
@@ -148,11 +159,18 @@ export default function AdminPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [wars, setWars] = useState<War[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [tab, setTab] = useState<"cities" | "trades" | "wars" | "resources" | "laws" | "phase">("cities");
+  const [tab, setTab] = useState<"cities" | "trades" | "wars" | "resources" | "laws" | "phase" | "missions">("cities");
   const [resourceTypes, setResourceTypes] = useState<ResourceType[]>([]);
   const [resourceSaving, setResourceSaving] = useState<string | null>(null);
   const [laws, setLaws] = useState<Law[]>([]);
   const [lawActionLoading, setLawActionLoading] = useState<string | null>(null);
+  const [globalMissions, setGlobalMissions] = useState<GlobalMission[]>([]);
+  const [gmTitle, setGmTitle] = useState("");
+  const [gmDesc, setGmDesc] = useState("");
+  const [gmResourceType, setGmResourceType] = useState("");
+  const [gmTargetAmount, setGmTargetAmount] = useState("500");
+  const [gmLoading, setGmLoading] = useState(false);
+  const [gmError, setGmError] = useState("");
 
   const [cities, setCities] = useState<City[]>([]);
   const [newCityName, setNewCityName] = useState("");
@@ -179,17 +197,19 @@ export default function AdminPage() {
 
   const loadData = useCallback(async () => {
     const noCache = { cache: "no-store" as RequestCache };
-    const [tradesRes, warsRes, settingsRes, citiesRes, rtRes, lawsRes] = await Promise.all([
+    const [tradesRes, warsRes, settingsRes, citiesRes, rtRes, lawsRes, gmRes] = await Promise.all([
       fetch("/api/admin/trades", noCache).then((r) => r.json()),
       fetch("/api/admin/wars", noCache).then((r) => r.json()),
       fetch("/api/admin/settings", noCache).then((r) => r.json()),
       fetch("/api/admin/cities", noCache).then((r) => r.json()),
       fetch("/api/admin/resource-types", noCache).then((r) => r.json()),
       fetch("/api/admin/laws", noCache).then((r) => r.json()),
+      fetch("/api/admin/global-missions", noCache).then((r) => r.json()),
     ]);
     setTrades(tradesRes.trades ?? []);
     setWars(warsRes.wars ?? []);
     setSettings(settingsRes.settings ?? null);
+    setGlobalMissions(gmRes.missions ?? []);
 
     let citiesList = citiesRes.cities ?? [];
     if (citiesRes.error) {
@@ -434,6 +454,39 @@ export default function AdminPage() {
     setCityResourcesSaving(null);
   }
 
+  async function handleCreateGlobalMission(e: React.FormEvent) {
+    e.preventDefault();
+    setGmError("");
+    setGmLoading(true);
+    try {
+      const res = await fetch("/api/admin/global-missions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: gmTitle, description: gmDesc, targetResourceType: gmResourceType, targetAmount: Number(gmTargetAmount) }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setGmError(data.error ?? "สร้างไม่สำเร็จ"); return; }
+      setGmTitle(""); setGmDesc(""); setGmResourceType(""); setGmTargetAmount("500");
+      await loadData();
+    } catch { setGmError("เกิดข้อผิดพลาด"); }
+    finally { setGmLoading(false); }
+  }
+
+  async function handleToggleGlobalMission(id: string, activate: boolean) {
+    await fetch(`/api/admin/global-missions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: activate }),
+    });
+    await loadData();
+  }
+
+  async function handleDeleteGlobalMission(id: string) {
+    if (!confirm("ลบภารกิจนี้?")) return;
+    await fetch(`/api/admin/global-missions/${id}`, { method: "DELETE" });
+    await loadData();
+  }
+
   async function handleReleaseResources(cityId: string) {
     const amounts = cityResourcesDraft[cityId] ?? {};
     const payload: Record<string, number> = {};
@@ -539,13 +592,13 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <nav className="flex flex-wrap gap-2">
-        {(["cities", "trades", "wars", "resources", "laws", "phase"] as const).map((t) => (
+        {(["cities", "missions", "trades", "wars", "resources", "laws", "phase"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${tab === t ? "bg-crimson text-parchment" : "border border-gold/40 bg-parchment text-crimson"}`}
           >
-            {t === "cities" ? `เมือง (${cities.length})` : t === "trades" ? `ค้าขาย (${pendingTrades.length})` : t === "wars" ? `สงคราม (${pendingWars.length})` : t === "resources" ? "📦 ทรัพยากร" : t === "laws" ? `กฎหมาย (${laws.filter((l) => l.status === "pending").length})` : "ช่วงเวลา"}
+            {t === "cities" ? `เมือง (${cities.length})` : t === "missions" ? `🌏 ภารกิจร่วม (${globalMissions.length})` : t === "trades" ? `ค้าขาย (${pendingTrades.length})` : t === "wars" ? `สงคราม (${pendingWars.length})` : t === "resources" ? "📦 ทรัพยากร" : t === "laws" ? `กฎหมาย (${laws.filter((l) => l.status === "pending").length})` : "ช่วงเวลา"}
           </button>
         ))}
       </nav>
@@ -719,6 +772,86 @@ export default function AdminPage() {
               </div>
             </article>
           ))}
+        </section>
+      )}
+
+      {/* Global Missions Tab */}
+      {tab === "missions" && (
+        <section className="space-y-3">
+          <form onSubmit={handleCreateGlobalMission} className="siam-card space-y-3">
+            <h2 className="text-sm font-bold text-crimson">🌏 สร้างภารกิจร่วมใหม่</h2>
+            <input
+              value={gmTitle} onChange={(e) => setGmTitle(e.target.value)}
+              placeholder="ชื่อภารกิจ เช่น พระราชโองการ: รวมพลทหาร"
+              className="w-full rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm outline-none"
+            />
+            <textarea
+              value={gmDesc} onChange={(e) => setGmDesc(e.target.value)}
+              placeholder="คำอธิบายภารกิจ (ไม่บังคับ)"
+              rows={2}
+              className="w-full rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm outline-none"
+            />
+            <div className="flex gap-2">
+              <select
+                value={gmResourceType} onChange={(e) => setGmResourceType(e.target.value)}
+                className="flex-1 rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm"
+              >
+                <option value="">เลือกทรัพยากร</option>
+                {resourceTypes.map((rt) => (
+                  <option key={rt.key} value={rt.key}>{rt.icon ?? ""} {rt.label}</option>
+                ))}
+              </select>
+              <input
+                type="number" min="1" value={gmTargetAmount} onChange={(e) => setGmTargetAmount(e.target.value)}
+                placeholder="เป้าหมาย"
+                className="w-28 rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm"
+              />
+            </div>
+            {gmError && <p className="text-xs text-crimson">{gmError}</p>}
+            <button type="submit" disabled={gmLoading || !gmTitle.trim() || !gmResourceType}
+              className="siam-button w-full text-sm disabled:opacity-50">
+              {gmLoading ? "กำลังสร้าง..." : "สร้างภารกิจ"}
+            </button>
+          </form>
+
+          {globalMissions.length === 0 && (
+            <p className="siam-card text-sm text-ink/50">ยังไม่มีภารกิจร่วม</p>
+          )}
+          {globalMissions.map((m) => {
+            const pct = Math.min(100, Math.round((m.current_amount / m.target_amount) * 100));
+            return (
+              <article key={m.id} className={`siam-card space-y-2 border-2 ${m.is_active ? "border-gold" : "border-transparent"}`}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-crimson">{m.title}</p>
+                    {m.description && <p className="text-xs text-ink/60">{m.description}</p>}
+                    <p className="text-xs text-ink/70">ทรัพยากร: {m.target_resource_type} | เป้า: {m.current_amount}/{m.target_amount}</p>
+                  </div>
+                  {m.is_active && <span className="rounded-full bg-gold/30 px-2 py-0.5 text-xs font-bold text-amber-800">ใช้งาน</span>}
+                </div>
+                <div className="h-3 w-full overflow-hidden rounded-full bg-gold/20">
+                  <div className="h-full rounded-full bg-crimson transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="flex gap-2">
+                  {!m.is_active ? (
+                    <button onClick={() => handleToggleGlobalMission(m.id, true)}
+                      className="rounded-lg bg-green-700 px-3 py-1 text-xs font-semibold text-white">
+                      เปิดใช้งาน
+                    </button>
+                  ) : (
+                    <button onClick={() => handleToggleGlobalMission(m.id, false)}
+                      className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white">
+                      ปิดใช้งาน
+                    </button>
+                  )}
+                  <button onClick={() => handleDeleteGlobalMission(m.id)}
+                    className="rounded-lg border border-crimson/40 px-3 py-1 text-xs text-crimson">
+                    ลบ
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
 
