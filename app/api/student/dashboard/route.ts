@@ -15,7 +15,7 @@ export async function GET() {
       .eq("city_id", session.city_id)
       .order("resource_types(sort_order)", { ascending: true }),
     supabaseService.from("settings").select("current_phase, is_trade_active, is_war_active").eq("id", 1).single(),
-    supabaseService.from("cities").select("defense_score, stability_score").eq("id", session.city_id).single(),
+    supabaseService.from("cities").select("defense_score, stability_score, resources_released, unique_asset").eq("id", session.city_id).single(),
   ]);
 
   if (resourcesRes.error) {
@@ -38,10 +38,15 @@ export async function GET() {
   const settings = (settingsRes.data ?? {}) as Record<string, unknown>;
   if (settings.war_reparation_percent === undefined) settings.war_reparation_percent = 10;
 
+  const cityData = cityRes.data as { defense_score: number; stability_score: number; resources_released: boolean; unique_asset: string } | null;
+
   return NextResponse.json({
+    cityId: session.city_id,
     cityName: session.city_name,
+    resourcesReleased: cityData?.resources_released ?? false,
+    uniqueAsset: cityData?.unique_asset ?? "",
     resources,
     settings: { current_phase: "peace", is_trade_active: true, is_war_active: false, ...settings },
-    cityStats: cityRes.data ?? { defense_score: 0, stability_score: 0 },
+    cityStats: { defense_score: cityData?.defense_score ?? 0, stability_score: cityData?.stability_score ?? 0 },
   });
 }

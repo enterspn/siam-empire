@@ -41,10 +41,16 @@ type City = {
   defense_score: number;
   stability_score: number;
   negotiation_goal?: string;
+  is_registered?: boolean;
+  resources_released?: boolean;
+  unique_asset?: string;
+  slot_number?: number | null;
   assigned_products?: { id: string; label: string; icon: string | null; key: string }[];
   resources?: CityResource[];
   created_at: string;
 };
+
+const UNIQUE_ASSETS = ["ตราพระราชสีห์", "ยาสมุนไพร", "ไม้สัก", "เครื่องเทศ", "หยก", "ดีบุก", "อัญมณี", "ผ้าไหม"];
 
 type ResourceType = {
   id: string;
@@ -168,6 +174,8 @@ export default function AdminPage() {
   const [cityResourcesSaving, setCityResourcesSaving] = useState<string | null>(null);
   const [reparationPercent, setReparationPercent] = useState(10);
   const [showGroupCodes, setShowGroupCodes] = useState(false);
+  const [uniqueAssetDraft, setUniqueAssetDraft] = useState<Record<string, string>>({});
+  const [releaseSaving, setReleaseSaving] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const noCache = { cache: "no-store" as RequestCache };
@@ -387,9 +395,12 @@ export default function AdminPage() {
         res[c.id][r.resource_type_id] = String(r.amount);
       });
     });
+    const ua: Record<string, string> = {};
+    cities.forEach((c) => { ua[c.id] = c.unique_asset ?? ""; });
     setCityGoalDraft((prev) => ({ ...prev, ...goal }));
     setCityProductsDraft((prev) => ({ ...prev, ...products }));
     setCityResourcesDraft((prev) => ({ ...prev, ...res }));
+    setUniqueAssetDraft((prev) => ({ ...prev, ...ua }));
   }, [cities]);
 
   function getCityResourceAmount(cityId: string, resourceTypeId: string): string {
@@ -421,6 +432,22 @@ export default function AdminPage() {
     });
     await loadData();
     setCityResourcesSaving(null);
+  }
+
+  async function handleReleaseResources(cityId: string) {
+    const amounts = cityResourcesDraft[cityId] ?? {};
+    const payload: Record<string, number> = {};
+    resourceTypes.forEach((rt) => {
+      payload[rt.id] = Math.max(0, Math.floor(Number(amounts[rt.id]) || 0));
+    });
+    setReleaseSaving(cityId);
+    await fetch(`/api/admin/cities/${cityId}/release`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resources: payload, uniqueAsset: uniqueAssetDraft[cityId] ?? "" }),
+    });
+    await loadData();
+    setReleaseSaving(null);
   }
 
   async function handleLogout() {
@@ -652,11 +679,40 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+              {/* Unique Asset + Release Resources */}
+              <div className={`rounded-xl border-2 p-3 ${c.resources_released ? "border-green-400 bg-green-50" : "border-crimson/30 bg-crimson/5"}`}>
+                <p className="mb-2 text-xs font-bold text-crimson">
+                  {c.resources_released ? "✅ ปล่อยทรัพยากรแล้ว" : "🔒 ยังไม่ได้ปล่อยทรัพยากร"}
+                </p>
+                {!c.resources_released && (
+                  <>
+                    <div className="mb-2">
+                      <p className="mb-1 text-xs font-semibold text-ink">สินทรัพย์พิเศษ</p>
+                      <select
+                        value={uniqueAssetDraft[c.id] ?? ""}
+                        onChange={(e) => setUniqueAssetDraft((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                        className="w-full rounded border border-gold/40 bg-white/80 px-2 py-1.5 text-sm"
+                      >
+                        <option value="">-- เลือกสินทรัพย์พิเศษ --</option>
+                        {UNIQUE_ASSETS.map((a) => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleReleaseResources(c.id)}
+                      disabled={releaseSaving === c.id}
+                      className="w-full rounded-xl bg-crimson py-2 text-sm font-bold text-parchment hover:bg-crimson/90 disabled:opacity-50"
+                    >
+                      {releaseSaving === c.id ? "กำลังปล่อย..." : "🚀 Release Resources"}
+                    </button>
+                  </>
+                )}
+                {c.resources_released && c.unique_asset && (
+                  <p className="text-xs text-green-800">สินทรัพย์พิเศษ: <strong>{c.unique_asset}</strong></p>
+                )}
+              </div>
               {c.leader_name && <p className="text-xs text-ink/70">ผู้นำ: {c.leader_name}</p>}
               {c.description && <p className="text-xs text-ink/60">คำอธิบาย: {c.description}</p>}
-              {c.laws && <p className="text-xs text-ink/60">กฎหมาย: {c.laws}</p>}
-              {c.materials && <p className="text-xs text-ink/60">วัสดุ: {c.materials}</p>}
-              {c.culture && <p className="text-xs text-ink/60">วัฒนธรรม: {c.culture}</p>}
               <div className="flex gap-3 text-xs text-ink/50">
                 <span>ป้องกัน: {c.defense_score}</span>
                 <span>เสถียรภาพ: {c.stability_score}</span>

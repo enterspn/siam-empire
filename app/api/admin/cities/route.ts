@@ -22,14 +22,14 @@ export async function GET() {
 async function getCitiesList() {
   const citiesResult = await supabaseService
     .from("cities")
-    .select("id, name, group_code, description, laws, materials, culture, leader_name, defense_score, stability_score, negotiation_goal, created_at")
+    .select("id, name, group_code, description, laws, materials, culture, leader_name, defense_score, stability_score, negotiation_goal, is_registered, resources_released, unique_asset, slot_number, created_at")
     .order("created_at", { ascending: true });
 
   let cities: Record<string, unknown>[];
   if (citiesResult.error) {
     const fallback = await supabaseService
       .from("cities")
-      .select("id, name, group_code, description, laws, materials, culture, leader_name, defense_score, stability_score, created_at")
+      .select("id, name, group_code, description, laws, materials, culture, leader_name, defense_score, stability_score, is_registered, resources_released, unique_asset, slot_number, created_at")
       .order("created_at", { ascending: true });
     if (fallback.error) {
       throw new Error(fallback.error.message);
