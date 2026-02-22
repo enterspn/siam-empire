@@ -195,6 +195,8 @@ export default function AdminPage() {
   const [showGroupCodes, setShowGroupCodes] = useState(false);
   const [uniqueAssetDraft, setUniqueAssetDraft] = useState<Record<string, string>>({});
   const [releaseSaving, setReleaseSaving] = useState<string | null>(null);
+  const [resetSlotSaving, setResetSlotSaving] = useState<string | null>(null);
+  const [resetAllSaving, setResetAllSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     const noCache = { cache: "no-store" as RequestCache };
@@ -482,6 +484,22 @@ export default function AdminPage() {
     await loadData();
   }
 
+  async function handleResetAllSlots() {
+    if (!confirm("รีเซ็ตช่องลงทะเบียนทั้งหมด? นักเรียนทุกกลุ่มจะต้องลงทะเบียนใหม่ในคาบหน้า")) return;
+    setResetAllSaving(true);
+    await fetch("/api/admin/reset-slots", { method: "POST" });
+    await loadData();
+    setResetAllSaving(false);
+  }
+
+  async function handleResetSlot(cityId: string) {
+    if (!confirm("รีเซ็ตช่องนี้? นักเรียนกลุ่มนี้จะถูกล้างออก และช่องจะว่างสำหรับกลุ่มใหม่")) return;
+    setResetSlotSaving(cityId);
+    await fetch(`/api/admin/cities/${cityId}/reset-slot`, { method: "POST" });
+    await loadData();
+    setResetSlotSaving(null);
+  }
+
   async function handleDeleteGlobalMission(id: string) {
     if (!confirm("ลบภารกิจนี้?")) return;
     await fetch(`/api/admin/global-missions/${id}`, { method: "DELETE" });
@@ -559,14 +577,25 @@ export default function AdminPage() {
       <section className="siam-card">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-bold text-crimson">เมืองทั้งหมด ({cities.length})</h2>
-          <button
-            type="button"
-            onClick={() => setShowGroupCodes((v) => !v)}
-            className="flex items-center gap-1 rounded border border-gold/40 bg-white/80 px-2 py-1 text-xs text-ink/70 hover:bg-gold/10"
-            title={showGroupCodes ? "ซ่อนรหัสกลุ่ม (เพื่อไม่ให้คนอื่นเห็น)" : "แสดงรหัสกลุ่ม (เมื่อครูจะขึ้นจอแจกรหัส)"}
-          >
-            {showGroupCodes ? "🙈 ซ่อนรหัส" : "👁️ แสดงรหัส"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowGroupCodes((v) => !v)}
+              className="flex items-center gap-1 rounded border border-gold/40 bg-white/80 px-2 py-1 text-xs text-ink/70 hover:bg-gold/10"
+              title={showGroupCodes ? "ซ่อนรหัสกลุ่ม" : "แสดงรหัสกลุ่ม"}
+            >
+              {showGroupCodes ? "🙈 ซ่อนรหัส" : "👁️ แสดงรหัส"}
+            </button>
+            <button
+              type="button"
+              onClick={handleResetAllSlots}
+              disabled={resetAllSaving}
+              className="flex items-center gap-1 rounded border border-amber-500 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+              title="รีเซ็ตทุกช่องเพื่อเตรียมรับนักเรียนคาบใหม่"
+            >
+              {resetAllSaving ? "กำลังรีเซ็ต..." : "🔄 รีเซ็ตทุกช่อง (คาบใหม่)"}
+            </button>
+          </div>
         </div>
         {cities.length === 0 ? (
           <p className="text-sm text-ink/50">ยังไม่มีเมือง — ไปที่แท็บ เมือง เพื่อสร้างเมืองใหม่</p>
@@ -634,18 +663,38 @@ export default function AdminPage() {
           {cities.length === 0 && <p className="siam-card text-sm text-ink/50">ยังไม่มีเมือง กรุณาสร้างเมืองใหม่</p>}
           {cities.map((c) => (
             <article key={c.id} className="siam-card space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-bold text-crimson">{c.name}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-crimson">{c.name}</p>
+                    {c.slot_number != null && (
+                      <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-xs text-ink/60">ช่องที่ {c.slot_number}</span>
+                    )}
+                    {c.is_registered && (
+                      <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-800">ลงทะเบียนแล้ว</span>
+                    )}
+                  </div>
                   <p className="text-xs text-ink/60">รหัสกลุ่ม: <span className="font-mono font-bold text-ink">{showGroupCodes ? c.group_code : "••••"}</span></p>
                 </div>
-                <button
-                  onClick={() => handleDeleteCity(c.id)}
-                  disabled={actionLoading === c.id}
-                  className="rounded-lg border border-crimson/30 px-2 py-0.5 text-xs text-crimson hover:bg-crimson/10 disabled:opacity-50"
-                >
-                  ลบ
-                </button>
+                <div className="flex shrink-0 flex-col gap-1">
+                  {c.slot_number != null && c.is_registered && (
+                    <button
+                      onClick={() => handleResetSlot(c.id)}
+                      disabled={resetSlotSaving === c.id}
+                      className="rounded border border-amber-500 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                      title="ล้างข้อมูลกลุ่มนี้เพื่อให้กลุ่มใหม่ลงทะเบียน"
+                    >
+                      {resetSlotSaving === c.id ? "..." : "🔄 รีเซ็ต"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteCity(c.id)}
+                    disabled={actionLoading === c.id}
+                    className="rounded-lg border border-crimson/30 px-2 py-0.5 text-xs text-crimson hover:bg-crimson/10 disabled:opacity-50"
+                  >
+                    ลบ
+                  </button>
+                </div>
               </div>
               {/* เป้าหมายการเจรจา – สิ่งที่นักเรียนต้องไปเจรจาก่อน ถ้าไม่ได้ให้ประกาศสงครามได้ */}
               <div>
