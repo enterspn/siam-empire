@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { AdminLogFeed } from "@/components/admin-log-feed";
 
 type Trade = {
   id: string;
@@ -159,7 +160,7 @@ export default function AdminPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [wars, setWars] = useState<War[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [tab, setTab] = useState<"cities" | "trades" | "wars" | "resources" | "laws" | "phase" | "missions">("cities");
+  const [tab, setTab] = useState<"cities" | "trades" | "wars" | "resources" | "laws" | "phase" | "missions" | "log">("cities");
   const [resourceTypes, setResourceTypes] = useState<ResourceType[]>([]);
   const [resourceSaving, setResourceSaving] = useState<string | null>(null);
   const [laws, setLaws] = useState<Law[]>([]);
@@ -592,13 +593,13 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <nav className="flex flex-wrap gap-2">
-        {(["cities", "missions", "trades", "wars", "resources", "laws", "phase"] as const).map((t) => (
+        {(["cities", "missions", "trades", "wars", "resources", "laws", "phase", "log"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${tab === t ? "bg-crimson text-parchment" : "border border-gold/40 bg-parchment text-crimson"}`}
           >
-            {t === "cities" ? `เมือง (${cities.length})` : t === "missions" ? `🌏 ภารกิจร่วม (${globalMissions.length})` : t === "trades" ? `ค้าขาย (${pendingTrades.length})` : t === "wars" ? `สงคราม (${pendingWars.length})` : t === "resources" ? "📦 ทรัพยากร" : t === "laws" ? `กฎหมาย (${laws.filter((l) => l.status === "pending").length})` : "ช่วงเวลา"}
+            {t === "cities" ? `เมือง (${cities.length})` : t === "missions" ? `🌏 ภารกิจร่วม (${globalMissions.length})` : t === "trades" ? `ค้าขาย (${pendingTrades.length})` : t === "wars" ? `สงคราม (${pendingWars.length})` : t === "resources" ? "📦 ทรัพยากร" : t === "laws" ? `กฎหมาย (${laws.filter((l) => l.status === "pending").length})` : t === "log" ? "💬 ล็อกแชท" : "ช่วงเวลา"}
           </button>
         ))}
       </nav>
@@ -852,6 +853,15 @@ export default function AdminPage() {
               </article>
             );
           })}
+        </section>
+      )}
+
+      {/* Log / Chat Tab */}
+      {tab === "log" && (
+        <section className="siam-card space-y-3">
+          <h2 className="text-sm font-bold text-crimson">💬 ล็อกกิจกรรม (Real-time)</h2>
+          <p className="text-xs text-ink/50">อัปเดตอัตโนมัติเมื่อมีการค้าขาย, สงคราม, หรือกิจกรรมใหม่</p>
+          <AdminLogFeed />
         </section>
       )}
 

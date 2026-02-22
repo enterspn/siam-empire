@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RoyalDecreeBanner } from "@/components/royal-decree-banner";
+import { supabase } from "@/lib/supabase/client";
 
 type Resource = { key: string; label: string; icon: string; amount: number; war_effect?: string | null; war_multiplier?: number };
 type Settings = { current_phase: string; is_trade_active: boolean; is_war_active: boolean };
 type CityStats = { defense_score: number; stability_score: number };
 type DashboardData = {
+  cityId: string;
   cityName: string;
   resources: Resource[];
   settings: Settings;
@@ -25,20 +27,44 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [guide, setGuide] = useState<NegotiationGuide | null>(null);
   const [error, setError] = useState("");
+  const cityIdRef = useRef<string>("");
+
+  async function fetchDashboard() {
+    const r = await fetch("/api/student/dashboard", { cache: "no-store" });
+    const d = await r.json();
+    if (d.error) setError(d.error);
+    else { setData(d); cityIdRef.current = d.cityId ?? ""; }
+  }
 
   useEffect(() => {
-    fetch("/api/student/dashboard")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else setData(d);
-      })
-      .catch(() => setError("ไม่สามารถโหลดข้อมูลได้"));
+    fetchDashboard();
     fetch("/api/student/negotiation-guide")
       .then((r) => r.json())
       .then((d) => setGuide(d))
       .catch(() => setGuide(null));
   }, []);
+
+  useEffect(() => {
+    const cityId = cityIdRef.current;
+    if (!cityId) {
+      const t = setTimeout(() => {
+        if (cityIdRef.current) setupRealtime(cityIdRef.current);
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+    return setupRealtime(cityId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.cityId]);
+
+  function setupRealtime(cityId: string) {
+    const channel = supabase
+      .channel(`dashboard-${cityId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "city_resources", filter: `city_id=eq.${cityId}` }, () => { fetchDashboard(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "cities", filter: `id=eq.${cityId}` }, () => { fetchDashboard(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "settings" }, () => { fetchDashboard(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
 
   if (error) {
     return (
