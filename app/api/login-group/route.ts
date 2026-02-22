@@ -6,10 +6,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const groupCode = (body.groupCode ?? "").trim().toLowerCase();
+    const cityRole = body.cityRole as "lord" | "city_dept" | "palace_dept" | "chronicler" | undefined;
 
     if (!groupCode) {
       return NextResponse.json(
         { error: "กรุณากรอกรหัสกลุ่ม" },
+        { status: 400 },
+      );
+    }
+
+    if (!cityRole || !["lord", "city_dept", "palace_dept", "chronicler"].includes(cityRole)) {
+      return NextResponse.json(
+        { error: "กรุณาเลือกบทบาทของคุณ" },
         { status: 400 },
       );
     }
@@ -31,6 +39,7 @@ export async function POST(req: NextRequest) {
       city_id: city.id,
       city_name: city.name,
       role: "student",
+      city_role: cityRole,
     });
 
     return NextResponse.json({ ok: true, cityName: city.name });

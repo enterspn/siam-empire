@@ -11,6 +11,7 @@ type CityInfo = {
   materials: string;
   culture: string;
   leader_name: string;
+  story_log: string;
 };
 
 type LawItem = {
@@ -34,6 +35,7 @@ export default function CityInfoPage() {
   const [laws, setLaws] = useState("");
   const [materials, setMaterials] = useState("");
   const [culture, setCulture] = useState("");
+  const [storyLog, setStoryLog] = useState("");
 
   const [lawList, setLawList] = useState<LawItem[]>([]);
   const [lawTitle, setLawTitle] = useState("");
@@ -56,6 +58,7 @@ export default function CityInfoPage() {
           setLaws(d.city.laws ?? "");
           setMaterials(d.city.materials ?? "");
           setCulture(d.city.culture ?? "");
+          setStoryLog(d.city.story_log ?? "");
         }
       })
       .catch(() => setError("ไม่สามารถโหลดข้อมูลได้"));
@@ -116,6 +119,7 @@ export default function CityInfoPage() {
           laws,
           materials,
           culture,
+          story_log: storyLog,
         }),
       });
       const data = await res.json();
@@ -287,6 +291,18 @@ export default function CityInfoPage() {
               onChange={(e) => setCulture(e.target.value)}
               placeholder="วัฒนธรรมหรือประเพณีของเมือง..."
               rows={3}
+              className="mt-1 w-full rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm outline-none ring-crimson/40 focus:ring"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold text-ink">📖 บันทึกประวัติศาสตร์ (คนสรุปเรื่องราว)</span>
+            <p className="mb-1 text-xs text-ink/60">เขียนเก็บบันทึกเหตุการณ์สำคัญ การเจรจา สงคราม และความเป็นไปของเมือง</p>
+            <textarea
+              value={storyLog}
+              onChange={(e) => setStoryLog(e.target.value)}
+              placeholder="วันนี้เมืองของเราได้..."
+              rows={5}
               className="mt-1 w-full rounded-xl border border-gold/40 bg-white/80 px-3 py-2 text-sm outline-none ring-crimson/40 focus:ring"
             />
           </label>

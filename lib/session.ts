@@ -4,6 +4,7 @@ export type SessionPayload = {
   city_id: string;
   city_name: string;
   role: "student" | "admin";
+  city_role?: "lord" | "city_dept" | "palace_dept" | "chronicler";
 };
 
 const COOKIE_NAME = "siam_session";

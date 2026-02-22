@@ -10,7 +10,7 @@ export async function GET() {
 
   const { data, error } = await supabaseService
     .from("cities")
-    .select("id, name, group_code, description, laws, materials, culture, leader_name")
+    .select("id, name, group_code, description, laws, materials, culture, leader_name, story_log")
     .eq("id", session.city_id)
     .single();
 
@@ -30,7 +30,7 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const allowed = ["description", "laws", "materials", "culture", "leader_name"];
+    const allowed = ["description", "laws", "materials", "culture", "leader_name", "story_log"];
     const updates: Record<string, unknown> = {};
 
     for (const key of allowed) {
