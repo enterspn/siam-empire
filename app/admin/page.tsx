@@ -197,6 +197,7 @@ export default function AdminPage() {
   const [releaseSaving, setReleaseSaving] = useState<string | null>(null);
   const [resetSlotSaving, setResetSlotSaving] = useState<string | null>(null);
   const [resetAllSaving, setResetAllSaving] = useState(false);
+  const [addSlotSaving, setAddSlotSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     const noCache = { cache: "no-store" as RequestCache };
@@ -500,6 +501,13 @@ export default function AdminPage() {
     setResetSlotSaving(null);
   }
 
+  async function handleAddSlot() {
+    setAddSlotSaving(true);
+    await fetch("/api/admin/cities/add-slot", { method: "POST" });
+    await loadData();
+    setAddSlotSaving(false);
+  }
+
   async function handleDeleteGlobalMission(id: string) {
     if (!confirm("ลบภารกิจนี้?")) return;
     await fetch(`/api/admin/global-missions/${id}`, { method: "DELETE" });
@@ -585,6 +593,15 @@ export default function AdminPage() {
               title={showGroupCodes ? "ซ่อนรหัสกลุ่ม" : "แสดงรหัสกลุ่ม"}
             >
               {showGroupCodes ? "🙈 ซ่อนรหัส" : "👁️ แสดงรหัส"}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddSlot}
+              disabled={addSlotSaving}
+              className="flex items-center gap-1 rounded border border-green-500 bg-green-50 px-2 py-1 text-xs font-semibold text-green-800 hover:bg-green-100 disabled:opacity-50"
+              title="เพิ่มช่องลงทะเบียนใหม่ สำหรับกลุ่มเพิ่มเติม"
+            >
+              {addSlotSaving ? "..." : "➕ เพิ่มช่องใหม่"}
             </button>
             <button
               type="button"
